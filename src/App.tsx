@@ -1,6 +1,4 @@
 import React, { useState, useCallback } from "react";
-import AsyncSelect from "react-select/async";
-import { getCountriesByName } from "@yusifaliyevpro/countries";
 import ReactFlow, {
   addEdge,
   applyNodeChanges,
@@ -18,14 +16,8 @@ import type {
   EdgeChange,
 } from "reactflow";
 import "reactflow/dist/style.css";
-import { useDebounce } from "./hooks/useDebounce";
-import "./App.css";
-
-interface Option {
-  value: string;
-  label: string;
-  flag: string;
-}
+import { CountrySelector } from "./components/CountrySelector";
+import type { Option } from "./types";
 
 const initialNodes: Node[] = [
   {
@@ -41,6 +33,7 @@ const initialEdges: Edge[] = [];
 function App() {
   const [selectedOption, setSelectedOption] = useState<Option | null>(null);
   const [addedCountries, setAddedCountries] = useState<Option[]>([]);
+  const [lastNodePosition, setLastNodePosition] = useState({ x: 20, y: 20 });
 
   const [nodes, setNodes] = useState<Node[]>(initialNodes);
   const [edges, setEdges] = useState<Edge[]>(initialEdges);
@@ -61,40 +54,7 @@ function App() {
     [],
   );
 
-  const loadOptionsOriginal = useCallback(
-    async (inputValue: string): Promise<Option[]> => {
-      const trimmedValue = inputValue.trim();
-
-      if (!trimmedValue) {
-        return [];
-      }
-
-      try {
-        const countries = await getCountriesByName({
-          name: trimmedValue,
-          fields: ["name", "flag"],
-        });
-
-        if (!countries) {
-          return [];
-        }
-
-        return countries.map((country) => ({
-          value: country.name.common.toLowerCase().replace(/\s+/g, "-"),
-          label: country.name.common,
-          flag: country.flag,
-        }));
-      } catch (error) {
-        console.error("Error fetching countries:", error);
-        return [];
-      }
-    },
-    [],
-  );
-
-  const loadOptions = useDebounce(loadOptionsOriginal, 600);
-
-  const handleChange = (option: Option | null) => {
+  const handleCountryChange = (option: Option | null) => {
     setSelectedOption(option);
   };
 
@@ -103,59 +63,31 @@ function App() {
 
     setAddedCountries([...addedCountries, selectedOption]);
 
+    const offsetX = 20;
+    const offsetY = 20;
+    const newPosition = {
+      x: lastNodePosition.x + offsetX,
+      y: lastNodePosition.y + offsetY,
+    };
+
     const newNode: Node = {
       id: `${selectedOption.value}_${Math.random()}`,
       data: { label: `${selectedOption.flag} ${selectedOption.label}` },
-      position: { x: 50, y: 50 },
+      position: newPosition,
       type: "default",
     };
-    setNodes((nds) => nds.concat(newNode));
-  };
 
-  const formatOptionLabel = useCallback(
-    (option: Option) => (
-      <div className="flex items-center gap-2">
-        <span className="text-xl">{option.flag}</span>
-        <span>{option.label}</span>
-      </div>
-    ),
-    [],
-  );
+    setNodes((nds) => nds.concat(newNode));
+    setLastNodePosition(newPosition);
+  };
 
   return (
     <div className="w-screen h-screen bg-gray-100">
-      <div className="p-4 flex gap-2 bg-white shadow z-10">
-        <AsyncSelect<Option>
-          value={selectedOption}
-          onChange={handleChange}
-          loadOptions={loadOptions}
-          formatOptionLabel={formatOptionLabel}
-          placeholder="Search for a country..."
-          isClearable
-          noOptionsMessage={({ inputValue }) =>
-            inputValue
-              ? `No countries found for "${inputValue}"`
-              : "Type to search countries"
-          }
-          styles={{
-            container: (provided) => ({
-              ...provided,
-              width: "400px",
-            }),
-          }}
-        />
-        <button
-          onClick={handleAddCountry}
-          disabled={!selectedOption}
-          className={`h-[38px] px-4 text-white border-none rounded text-sm ${
-            selectedOption
-              ? "bg-blue-600 hover:bg-blue-700 cursor-pointer"
-              : "bg-gray-400 cursor-not-allowed"
-          }`}
-        >
-          Add country
-        </button>
-      </div>
+      <CountrySelector
+        selectedOption={selectedOption}
+        onCountryChange={handleCountryChange}
+        onAddCountry={handleAddCountry}
+      />
 
       <div className="w-full h-[calc(100vh-64px)]">
         <ReactFlow
