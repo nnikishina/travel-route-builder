@@ -7,14 +7,7 @@ import ReactFlow, {
   Controls,
   MiniMap,
 } from "reactflow";
-import type {
-  Connection,
-  Edge,
-  Node,
-  // ReactFlowInstance,
-  NodeChange,
-  EdgeChange,
-} from "reactflow";
+import type { Connection, Edge, Node, NodeChange, EdgeChange } from "reactflow";
 import "reactflow/dist/style.css";
 import { CountrySelector } from "./components/CountrySelector";
 import type { Option } from "./types";
@@ -37,7 +30,6 @@ function App() {
 
   const [nodes, setNodes] = useState<Node[]>(initialNodes);
   const [edges, setEdges] = useState<Edge[]>(initialEdges);
-  // const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
 
   const onNodesChange = useCallback(
     (changes: NodeChange[]) =>
@@ -96,7 +88,6 @@ function App() {
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
-          // onInit={setReactFlowInstance}
           fitView
         >
           <MiniMap />
