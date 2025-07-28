@@ -1,6 +1,23 @@
 import React, { useState, useCallback } from "react";
 import AsyncSelect from "react-select/async";
 import { getCountriesByName } from "@yusifaliyevpro/countries";
+import ReactFlow, {
+  addEdge,
+  applyNodeChanges,
+  applyEdgeChanges,
+  Background,
+  Controls,
+  MiniMap,
+} from "reactflow";
+import type {
+  Connection,
+  Edge,
+  Node,
+  // ReactFlowInstance,
+  NodeChange,
+  EdgeChange,
+} from "reactflow";
+import "reactflow/dist/style.css";
 import { useDebounce } from "./hooks/useDebounce";
 import "./App.css";
 
@@ -10,9 +27,39 @@ interface Option {
   flag: string;
 }
 
+const initialNodes: Node[] = [
+  {
+    id: `germany_${Math.random()}`,
+    data: { label: "🇩🇪 Germany" },
+    position: { x: 250, y: 5 },
+    type: "default",
+  },
+];
+
+const initialEdges: Edge[] = [];
+
 function App() {
   const [selectedOption, setSelectedOption] = useState<Option | null>(null);
   const [addedCountries, setAddedCountries] = useState<Option[]>([]);
+
+  const [nodes, setNodes] = useState<Node[]>(initialNodes);
+  const [edges, setEdges] = useState<Edge[]>(initialEdges);
+  // const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
+
+  const onNodesChange = useCallback(
+    (changes: NodeChange[]) =>
+      setNodes((nds) => applyNodeChanges(changes, nds)),
+    [],
+  );
+  const onEdgesChange = useCallback(
+    (changes: EdgeChange[]) =>
+      setEdges((eds) => applyEdgeChanges(changes, eds)),
+    [],
+  );
+  const onConnect = useCallback(
+    (params: Edge | Connection) => setEdges((eds) => addEdge(params, eds)),
+    [],
+  );
 
   const loadOptionsOriginal = useCallback(
     async (inputValue: string): Promise<Option[]> => {
@@ -54,13 +101,15 @@ function App() {
   const handleAddCountry = () => {
     if (!selectedOption) return;
 
-    const countryExists = addedCountries.find(
-      (country) => country.value === selectedOption.value,
-    );
+    setAddedCountries([...addedCountries, selectedOption]);
 
-    if (!countryExists) {
-      setAddedCountries([...addedCountries, selectedOption]);
-    }
+    const newNode: Node = {
+      id: `${selectedOption.value}_${Math.random()}`,
+      data: { label: `${selectedOption.flag} ${selectedOption.label}` },
+      position: { x: 50, y: 50 },
+      type: "default",
+    };
+    setNodes((nds) => nds.concat(newNode));
   };
 
   const formatOptionLabel = useCallback(
@@ -74,8 +123,8 @@ function App() {
   );
 
   return (
-    <div className="p-6">
-      <div className="flex items-center gap-3 mb-5">
+    <div className="w-screen h-screen bg-gray-100">
+      <div className="p-4 flex gap-2 bg-white shadow z-10">
         <AsyncSelect<Option>
           value={selectedOption}
           onChange={handleChange}
@@ -91,7 +140,7 @@ function App() {
           styles={{
             container: (provided) => ({
               ...provided,
-              width: "300px",
+              width: "400px",
             }),
           }}
         />
@@ -108,21 +157,21 @@ function App() {
         </button>
       </div>
 
-      {addedCountries.length > 0 && (
-        <div>
-          <ul className="list-none p-0">
-            {addedCountries.map((country) => (
-              <li
-                key={country.value}
-                className="flex items-center gap-2 mb-2 p-2 bg-gray-100 rounded"
-              >
-                <span className="text-2xl">{country.flag}</span>
-                <span>{country.label}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      <div className="w-full h-[calc(100vh-64px)]">
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          // onInit={setReactFlowInstance}
+          fitView
+        >
+          <MiniMap />
+          <Controls />
+          <Background gap={16} />
+        </ReactFlow>
+      </div>
     </div>
   );
 }
